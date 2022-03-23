@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# jefeh
+kanban.dat
+finished_tasks.txt
