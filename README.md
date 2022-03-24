@@ -4,9 +4,12 @@
 
 Minimalistic kanban board application for the console in python.
 
+![Application UI](img/kanban.png?raw=true "Application UI.")
+
 ## Requirements
-Python > 3.8
-Colorama
+
+	* Python >= 3.8
+	* Colorama
 
 ## Manual
 
@@ -16,6 +19,7 @@ The commands:
 	* ADVANCE: Passes the task to the next column, prompts for the task id.
 	* LIST: Shows the Kanban panel.
 	* CLEAR: Clears the last column (Done).
+	* REMOVE: Removes a task, prompts for the task id.
 	* HELP: Lists the commands available.
 	* QUIT: Saves the board and exits.
 

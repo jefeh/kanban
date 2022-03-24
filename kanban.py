@@ -3,7 +3,7 @@
 #----------------------------------------------------------------------------
 # Created By  : Gonzalo Fernández Hernández
 # Created Date: 20220322
-# version = '0.1'
+# version = '0.2'
 # license = 'MIT'
 # ---------------------------------------------------------------------------
 """ Minimalistic kanban board """
@@ -20,6 +20,15 @@ import datetime
 
 ColumnID = int
 TaskID = int
+
+def trim_string(my_str: str, max_size: int) -> str:
+    if len(my_str) <= max_size:
+        return my_str
+    elif max_size > 3:
+        return '{0}...'.format(my_str[: max_size - 3])
+    else:
+        return my_str[: max_size]
+
 
 class Task:
     LAST_TASK_ID: TaskID = 0
@@ -118,12 +127,22 @@ class Board:
             self.advance(task_id)
         return len(last_column_ids)
             
+    def remove_task(self, task_id: Task) -> bool:
+        removing_tasks = list(filter(None, [col.remove_task(task_id) for col in self.m_columns]))
+        assert(len(removing_tasks) == 1)
+        return len(removing_tasks) > 0
+            
     def get_contents(self) -> Dict[str, List[str]]:
         return dict(ChainMap(*[col.get_contents() for col in self.m_columns]))
 
 
 class Kanban:
     
+    SCREEN_WIDTH : int = 80
+    TABULATOR_SIZE: int = 4
+    MAX_TAB_NAME_LEN: int = (SCREEN_WIDTH // 4) * 3
+    MAX_NAME_DESCRIPTION: int = SCREEN_WIDTH - (TABULATOR_SIZE + 5 )
+
     def __init__(self, columns: List[str]):
         self.m_board = Board()
         for col in columns:
@@ -160,11 +179,25 @@ class Kanban:
         return False
 
     def _list_tasks(self) -> bool:
-        colors = dict(Fore.__dict__.items())
+        colors = dict(Back.__dict__.items())
+        print (Fore.WHITE)
+        last_color = None
         for color_name, (col_name, tasks_descriptions) in zip(colors.keys(), self.m_board.get_contents().items()):
-            print(colors[color_name] + f'\t*** { col_name }')
+            col_name_trimmed = trim_string (col_name, Kanban.MAX_TAB_NAME_LEN)
+            border = '\u2500' * (len(col_name_trimmed) + 6)
+            if not last_color:
+                print(colors[color_name] + f'\u250C{border}\u2510')
+                print(colors[color_name] + f'\u2502 *** { col_name_trimmed } \u2514' + '\u2500' * (Kanban.SCREEN_WIDTH - len(border) - 4) + '\u2510')
+            else:
+                print(colors[color_name] + f'\u251C{border}\u2510' + colors[last_color] + ' ' * (Kanban.SCREEN_WIDTH - len(border) - 4) + '\u2502')
+                print(colors[color_name] + f'\u2502 *** { col_name_trimmed } \u2514' + '\u2500' * (Kanban.SCREEN_WIDTH - len(border) - 4) + '\u2524')
             for desc in tasks_descriptions:
-                print(colors[color_name] + f'\t\t- { desc }')
+                descr_trimmed = trim_string (desc, Kanban.MAX_NAME_DESCRIPTION)
+                print(colors[color_name] + f'\u2502{" " * Kanban.TABULATOR_SIZE}- { descr_trimmed }{" " * (Kanban.SCREEN_WIDTH - len(descr_trimmed)- Kanban.TABULATOR_SIZE - 5)}\u2502')
+            last_color = color_name
+        if self.m_board.get_contents().keys():
+            print(colors[color_name] + f'\u2514' + '\u2500' * (Kanban.SCREEN_WIDTH - 3) + '\u2518')
+        print (Back.RESET)
         return False
 
     def _new_task(self) -> bool:
@@ -190,6 +223,16 @@ class Kanban:
         print(Fore.BLUE + f'{num_tasks} tasks cleaned.' + Fore.WHITE) if num_tasks else print(Fore.BLUE + 'No tasks to be cleaned.')
         return False
     
+    def _remove_task(self) -> bool:
+        print(Fore.BLUE + '\tTask ID: ' + Fore.WHITE, end='')
+        task_id_str = input('').strip()
+        try:
+            task_id = int(task_id_str)
+            self.m_board.remove_task(task_id)
+        except ValueError:
+            print(Fore.RED + f'\tError: Number expected.')
+        return False
+    
     def _quit(self) -> bool:
         print(Fore.BLUE + f'Goodbye.\n')
         return True
@@ -200,6 +243,7 @@ class Kanban:
         'ADD': _new_task,
         'ADVANCE': _advance_task,
         'CLEAN': _clean_completed,
+        'REMOVE': _remove_task,
         'QUIT': _quit,
         }
 
